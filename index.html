@@ -11,12 +11,19 @@
       body {
         margin: 0;
         min-height: 100vh;
-        display: grid;
-        place-items: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         background: #f3f4f6;
+        padding: 1rem;
       }
       .app {
-        width: min(90vw, 480px);
+        width: min(95vw, 980px);
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      }
+      .panel {
         background: #fff;
         border-radius: 12px;
         padding: 1.25rem;
@@ -44,9 +51,15 @@
         font-weight: 700;
         color: #312e81;
       }
+      .timer-meta {
+        margin: 0;
+        color: #4b5563;
+        font-size: 0.9rem;
+      }
       .timer-controls {
         display: flex;
         gap: 0.5rem;
+        margin-top: 0.8rem;
       }
       .timer-controls button {
         background: #e0e7ff;
@@ -103,28 +116,47 @@
         color: #6b7280;
         margin-top: 0.85rem;
       }
+      .speaker-list {
+        margin-top: 0.9rem;
+        padding-left: 1.1rem;
+        color: #4338ca;
+      }
+      .speaker-list li {
+        border: none;
+        margin-bottom: 0.25rem;
+        padding: 0;
+        display: list-item;
+      }
     </style>
   </head>
   <body>
     <main class="app">
-      <h1>Attendance of tafsir session</h1>
-
-      <section class="timer" aria-label="2 minute speaker timer">
-        <p class="timer-label">Speaker time (2 minutes)</p>
-        <p id="timerValue" class="timer-value">02:00</p>
-        <div class="timer-controls">
-          <button id="startTimer" type="button">Start</button>
-          <button id="pauseTimer" type="button">Pause</button>
-          <button id="resetTimer" type="button">Reset</button>
-        </div>
+      <section class="panel" aria-label="Attendance window">
+        <h1>Attendance</h1>
+        <form id="taskForm" class="row">
+          <input id="taskInput" placeholder="Add member name..." />
+          <button id="add" type="submit">Add</button>
+        </form>
+        <p id="empty" class="empty">No members yet.</p>
+        <ul id="taskList"></ul>
       </section>
 
-      <form id="taskForm" class="row">
-        <input id="taskInput" placeholder="Add member name..." />
-        <button id="add" type="submit">Add</button>
-      </form>
-      <p id="empty" class="empty">No members yet.</p>
-      <ul id="taskList"></ul>
+      <section class="panel" aria-label="Speaker timer window">
+        <h1>Speaker Stopwatch</h1>
+        <section class="timer" aria-label="2 minute speaker timer">
+          <p class="timer-label">Count up from 00:00</p>
+          <p id="timerValue" class="timer-value">00:00</p>
+          <p id="timerMeta" class="timer-meta">Select members to add 2 minutes each.</p>
+          <div class="timer-controls">
+            <button id="startTimer" type="button">Start</button>
+            <button id="pauseTimer" type="button">Pause</button>
+            <button id="resetTimer" type="button">Reset</button>
+          </div>
+        </section>
+
+        <p class="timer-label">Selected speaking order (2 min each)</p>
+        <ol id="speakerList" class="speaker-list"></ol>
+      </section>
     </main>
 
     <script>
@@ -133,15 +165,18 @@
       const taskList = document.getElementById('taskList');
       const empty = document.getElementById('empty');
       const timerValue = document.getElementById('timerValue');
+      const timerMeta = document.getElementById('timerMeta');
+      const speakerList = document.getElementById('speakerList');
       const startTimer = document.getElementById('startTimer');
       const pauseTimer = document.getElementById('pauseTimer');
       const resetTimer = document.getElementById('resetTimer');
 
       let nextId = 1;
       const tasks = [];
+      const speakerQueue = [];
 
-      const TIMER_DURATION = 120;
-      let secondsRemaining = TIMER_DURATION;
+      const SPEAKER_DURATION = 120;
+      let secondsElapsed = 0;
       let timerInterval = null;
 
       function formatTime(totalSeconds) {
@@ -151,7 +186,25 @@
       }
 
       function updateTimerDisplay() {
-        timerValue.textContent = formatTime(secondsRemaining);
+        timerValue.textContent = formatTime(secondsElapsed);
+
+        const totalDuration = speakerQueue.length * SPEAKER_DURATION;
+        if (totalDuration === 0) {
+          timerMeta.textContent = 'Select members to add 2 minutes each.';
+          return;
+        }
+
+        const cappedElapsed = Math.min(secondsElapsed, totalDuration);
+        const speakerIndex = Math.min(
+          Math.floor(cappedElapsed / SPEAKER_DURATION),
+          speakerQueue.length - 1
+        );
+        const currentSpeaker = speakerQueue[speakerIndex];
+        const speakerLabel = currentSpeaker ? currentSpeaker.text : 'Finished';
+
+        timerMeta.textContent = `Current: ${speakerLabel} • ${formatTime(
+          cappedElapsed
+        )} / ${formatTime(totalDuration)}`;
       }
 
       function stopTimer() {
@@ -161,14 +214,15 @@
       }
 
       function startCountdown() {
-        if (timerInterval || secondsRemaining === 0) return;
+        const totalDuration = speakerQueue.length * SPEAKER_DURATION;
+        if (timerInterval || totalDuration === 0 || secondsElapsed >= totalDuration) return;
 
         timerInterval = setInterval(() => {
-          secondsRemaining -= 1;
+          secondsElapsed += 1;
           updateTimerDisplay();
 
-          if (secondsRemaining <= 0) {
-            secondsRemaining = 0;
+          if (secondsElapsed >= totalDuration) {
+            secondsElapsed = totalDuration;
             updateTimerDisplay();
             stopTimer();
           }
@@ -177,7 +231,7 @@
 
       function resetCountdown() {
         stopTimer();
-        secondsRemaining = TIMER_DURATION;
+        secondsElapsed = 0;
         updateTimerDisplay();
       }
 
@@ -187,6 +241,7 @@
 
       function render() {
         taskList.innerHTML = '';
+        speakerList.innerHTML = '';
 
         tasks.forEach((task) => {
           const li = document.createElement('li');
@@ -218,7 +273,14 @@
           taskList.appendChild(li);
         });
 
+        speakerQueue.forEach((speaker) => {
+          const li = document.createElement('li');
+          li.textContent = speaker.text;
+          speakerList.appendChild(li);
+        });
+
         empty.style.display = tasks.length ? 'none' : 'block';
+        updateTimerDisplay();
       }
 
       function addTask() {
@@ -249,10 +311,25 @@
 
         if (button.dataset.action === 'toggle') {
           tasks[taskIndex].done = !tasks[taskIndex].done;
+
+          if (tasks[taskIndex].done) {
+            speakerQueue.push(tasks[taskIndex]);
+          } else {
+            const queueIndex = speakerQueue.findIndex((member) => member.id === taskId);
+            if (queueIndex !== -1) speakerQueue.splice(queueIndex, 1);
+          }
         }
 
         if (button.dataset.action === 'delete') {
+          const queueIndex = speakerQueue.findIndex((member) => member.id === taskId);
+          if (queueIndex !== -1) speakerQueue.splice(queueIndex, 1);
           tasks.splice(taskIndex, 1);
+        }
+
+        const totalDuration = speakerQueue.length * SPEAKER_DURATION;
+        if (secondsElapsed > totalDuration) {
+          secondsElapsed = totalDuration;
+          stopTimer();
         }
 
         render();
