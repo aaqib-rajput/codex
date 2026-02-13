@@ -121,6 +121,23 @@
         padding-left: 1.1rem;
         color: #4338ca;
       }
+      .export-wrap {
+        margin-top: 1rem;
+      }
+      .export {
+        width: 100%;
+        background: #059669;
+        color: #fff;
+      }
+      .export:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+      .export-note {
+        margin: 0.55rem 0 0;
+        color: #4b5563;
+        font-size: 0.85rem;
+      }
       .speaker-list li {
         border: none;
         margin-bottom: 0.25rem;
@@ -139,6 +156,12 @@
         </form>
         <p id="empty" class="empty">No members yet.</p>
         <ul id="taskList"></ul>
+        <div class="export-wrap">
+          <button id="downloadCsv" class="export" type="button" disabled>
+            Download attendance CSV (Google Sheets)
+          </button>
+          <p class="export-note">Download before refresh to keep your session data.</p>
+        </div>
       </section>
 
       <section class="panel" aria-label="Speaker timer window">
@@ -170,6 +193,7 @@
       const startTimer = document.getElementById('startTimer');
       const pauseTimer = document.getElementById('pauseTimer');
       const resetTimer = document.getElementById('resetTimer');
+      const downloadCsv = document.getElementById('downloadCsv');
 
       let nextId = 1;
       const tasks = [];
@@ -235,9 +259,58 @@
         updateTimerDisplay();
       }
 
+      function escapeCsvField(value) {
+        const text = String(value ?? '');
+        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+          return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+      }
+
+      function downloadAttendanceCsv() {
+        if (!tasks.length) return;
+
+        const csvRows = [
+          [
+            'Member Name',
+            'Attendance Status',
+            'In Speaking Queue',
+            'Speaking Duration (min)',
+            'Speaking Duration (sec)',
+          ].join(','),
+        ];
+
+        tasks.forEach((task) => {
+          const inQueue = speakerQueue.some((member) => member.id === task.id);
+          const durationSeconds = inQueue ? SPEAKER_DURATION : 0;
+          csvRows.push(
+            [
+              escapeCsvField(task.text),
+              task.done ? 'Present' : 'Absent',
+              inQueue ? 'Yes' : 'No',
+              durationSeconds / 60,
+              durationSeconds,
+            ].join(',')
+          );
+        });
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        link.href = url;
+        link.download = `attendance-${timestamp}.csv`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+      }
+
       startTimer.addEventListener('click', startCountdown);
       pauseTimer.addEventListener('click', stopTimer);
       resetTimer.addEventListener('click', resetCountdown);
+      downloadCsv.addEventListener('click', downloadAttendanceCsv);
 
       function render() {
         taskList.innerHTML = '';
@@ -280,6 +353,7 @@
         });
 
         empty.style.display = tasks.length ? 'none' : 'block';
+        downloadCsv.disabled = tasks.length === 0;
         updateTimerDisplay();
       }
 
