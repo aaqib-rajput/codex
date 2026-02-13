@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple To-Do App</title>
+    <style>
+      :root {
+        font-family: Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f3f4f6;
+      }
+      .app {
+        width: min(90vw, 480px);
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+      }
+      .row {
+        display: flex;
+        gap: 0.5rem;
+      }
+      input {
+        flex: 1;
+        padding: 0.6rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+      }
+      button {
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 0.9rem;
+        cursor: pointer;
+      }
+      #add {
+        background: #2563eb;
+        color: #fff;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 1rem 0 0;
+      }
+      li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.55rem 0.6rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+      }
+      li.done span {
+        text-decoration: line-through;
+        color: #6b7280;
+      }
+      .actions {
+        display: flex;
+        gap: 0.35rem;
+      }
+      .toggle {
+        background: #dbeafe;
+      }
+      .remove {
+        background: #fee2e2;
+      }
+      .empty {
+        color: #6b7280;
+        margin-top: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <h1>Simple To-Do</h1>
+      <form id="taskForm" class="row">
+        <input id="taskInput" placeholder="Add a task..." />
+        <button id="add" type="submit">Add</button>
+      </form>
+      <p id="empty" class="empty">No tasks yet.</p>
+      <ul id="taskList"></ul>
+    </main>
+
+    <script>
+      const taskForm = document.getElementById('taskForm');
+      const taskInput = document.getElementById('taskInput');
+      const taskList = document.getElementById('taskList');
+      const empty = document.getElementById('empty');
+
+      let nextId = 1;
+      const tasks = [];
+
+      function render() {
+        taskList.innerHTML = '';
+
+        tasks.forEach((task) => {
+          const li = document.createElement('li');
+          li.dataset.id = String(task.id);
+          if (task.done) li.classList.add('done');
+
+          const text = document.createElement('span');
+          text.textContent = task.text;
+
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+
+          const toggle = document.createElement('button');
+          toggle.className = 'toggle';
+          toggle.type = 'button';
+          toggle.dataset.action = 'toggle';
+          toggle.textContent = task.done ? 'Undo' : 'Done';
+
+          const remove = document.createElement('button');
+          remove.className = 'remove';
+          remove.type = 'button';
+          remove.dataset.action = 'delete';
+          remove.textContent = 'Delete';
+
+          actions.appendChild(toggle);
+          actions.appendChild(remove);
+          li.appendChild(text);
+          li.appendChild(actions);
+          taskList.appendChild(li);
+        });
+
+        empty.style.display = tasks.length ? 'none' : 'block';
+      }
+
+      function addTask() {
+        const value = taskInput.value.trim();
+        if (!value) return;
+
+        tasks.push({ id: nextId++, text: value, done: false });
+        taskInput.value = '';
+        taskInput.focus();
+        render();
+      }
+
+      taskForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        addTask();
+      });
+
+      taskList.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+
+        const li = button.closest('li[data-id]');
+        if (!li) return;
+
+        const taskId = Number(li.dataset.id);
+        const taskIndex = tasks.findIndex((task) => task.id === taskId);
+        if (taskIndex === -1) return;
+
+        if (button.dataset.action === 'toggle') {
+          tasks[taskIndex].done = !tasks[taskIndex].done;
+        }
+
+        if (button.dataset.action === 'delete') {
+          tasks.splice(taskIndex, 1);
+        }
+
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
