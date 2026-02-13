@@ -1,458 +1,313 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Attendance of tafsir session</title>
-    <style>
-      :root {
-        font-family: Arial, sans-serif;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: #f3f4f6;
-        padding: 1rem;
-      }
-      .app {
-        width: min(95vw, 980px);
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      }
-      .panel {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        margin-top: 0;
-        margin-bottom: 0.75rem;
-      }
-      .timer {
-        background: #eef2ff;
-        border: 1px solid #c7d2fe;
-        border-radius: 10px;
-        padding: 0.85rem;
-        margin-bottom: 1rem;
-      }
-      .timer-label {
-        margin: 0;
-        color: #4338ca;
-        font-size: 0.9rem;
-      }
-      .timer-value {
-        margin: 0.35rem 0 0.7rem;
-        font-size: 2rem;
-        font-weight: 700;
-        color: #312e81;
-      }
-      .timer-meta {
-        margin: 0;
-        color: #4b5563;
-        font-size: 0.9rem;
-      }
-      .timer-controls {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 0.8rem;
-      }
-      .timer-controls button {
-        background: #e0e7ff;
-      }
-      .row {
-        display: flex;
-        gap: 0.5rem;
-      }
-      input {
-        flex: 1;
-        padding: 0.6rem;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-      }
-      button {
-        border: none;
-        border-radius: 8px;
-        padding: 0.6rem 0.9rem;
-        cursor: pointer;
-      }
-      #add {
-        background: #2563eb;
-        color: #fff;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 1rem 0 0;
-      }
-      li {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.55rem 0.6rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-      }
-      li.present span {
-        color: #15803d;
-        font-weight: 600;
-      }
-      li.absent span {
-        color: #dc2626;
-        text-decoration: line-through;
-        text-decoration-color: #dc2626;
-        text-decoration-thickness: 2px;
-      }
-      li.speaking span {
-        color: #2563eb;
-        font-weight: 700;
-      }
-      .actions {
-        display: flex;
-        gap: 0.35rem;
-        flex-wrap: wrap;
-      }
-      .toggle {
-        background: #dbeafe;
-      }
-      .speak {
-        background: #bfdbfe;
-      }
-      .absent {
-        background: #fecaca;
-      }
-      .remove {
-        background: #fee2e2;
-      }
-      .empty {
-        color: #6b7280;
-        margin-top: 0.85rem;
-      }
-      .speaker-list {
-        margin-top: 0.9rem;
-        padding-left: 1.1rem;
-        color: #4338ca;
-      }
-      .export-wrap {
-        margin-top: 1rem;
-      }
-      .export {
-        width: 100%;
-        background: #059669;
-        color: #fff;
-      }
-      .export:disabled {
-        background: #9ca3af;
-        cursor: not-allowed;
-      }
-      .export-note {
-        margin: 0.55rem 0 0;
-        color: #4b5563;
-        font-size: 0.85rem;
-      }
-      .speaker-list li {
-        border: none;
-        margin-bottom: 0.25rem;
-        padding: 0;
-        display: list-item;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="app">
-      <section class="panel" aria-label="Attendance window">
-        <h1>Attendance</h1>
-        <form id="taskForm" class="row">
-          <input id="taskInput" placeholder="Add member name..." />
-          <button id="add" type="submit">Add</button>
-        </form>
-        <p id="empty" class="empty">No members yet.</p>
-        <ul id="taskList"></ul>
-        <div class="export-wrap">
-          <button id="downloadCsv" class="export" type="button" disabled>
-            Download attendance CSV (Google Sheets)
-          </button>
-          <p class="export-note">Download before refresh to keep your session data.</p>
-        </div>
-      </section>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tafsir Session Manager</title>
 
-      <section class="panel" aria-label="Speaker timer window">
-        <h1>Speaker Stopwatch</h1>
-        <section class="timer" aria-label="Speaker timer">
-          <p class="timer-label">Count up from 00:00</p>
-          <p id="timerValue" class="timer-value">00:00</p>
-          <p id="timerMeta" class="timer-meta">Select a speaker and start the timer.</p>
-          <div class="timer-controls">
-            <button id="startTimer" type="button">Start</button>
-            <button id="pauseTimer" type="button">Pause</button>
-            <button id="resetTimer" type="button">Reset</button>
-          </div>
-        </section>
+<style>
+:root{
+  --primary:#4f46e5;
+  --light-red:#fee2e2;
+  --light-green:#dcfce7;
+  --gray-300:#d1d5db;
+  --gray-500:#6b7280;
+  font-family:Inter,system-ui,sans-serif;
+}
 
-        <p class="timer-label">Speaking summary</p>
-        <ol id="speakerList" class="speaker-list"></ol>
-      </section>
-    </main>
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(135deg,#eef2ff,#f8fafc);
+  display:flex;
+  justify-content:center;
+  padding:2rem;
+}
 
-    <script>
-      const taskForm = document.getElementById('taskForm');
-      const taskInput = document.getElementById('taskInput');
-      const taskList = document.getElementById('taskList');
-      const empty = document.getElementById('empty');
-      const timerValue = document.getElementById('timerValue');
-      const timerMeta = document.getElementById('timerMeta');
-      const speakerList = document.getElementById('speakerList');
-      const startTimer = document.getElementById('startTimer');
-      const pauseTimer = document.getElementById('pauseTimer');
-      const resetTimer = document.getElementById('resetTimer');
-      const downloadCsv = document.getElementById('downloadCsv');
+.app{
+  width:min(1200px,95vw);
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:auto 1fr;
+  gap:1.5rem;
+}
 
-      let nextId = 1;
-      const tasks = [];
-      const speakerOrder = [];
+.panel{
+  background:white;
+  border-radius:18px;
+  padding:1.5rem;
+  box-shadow:0 20px 40px rgba(0,0,0,0.08);
+  display:flex;
+  flex-direction:column;
+}
 
-      let secondsElapsed = 0;
-      let timerInterval = null;
-      let currentSpeakerId = null;
+h1{margin:0 0 1rem;font-size:1.2rem}
+.row{display:flex;gap:.5rem;margin-bottom:.7rem}
 
-      function formatTime(totalSeconds) {
-        const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-        const seconds = String(totalSeconds % 60).padStart(2, '0');
-        return `${minutes}:${seconds}`;
-      }
+input{
+  flex:1;
+  padding:.6rem;
+  border-radius:8px;
+  border:1px solid var(--gray-300);
+}
 
-      function updateTimerDisplay() {
-        timerValue.textContent = formatTime(secondsElapsed);
+button{
+  border:none;
+  border-radius:8px;
+  padding:.4rem .7rem;
+  cursor:pointer;
+  font-size:.85rem;
+}
 
-        const speaker = tasks.find((task) => task.id === currentSpeakerId);
-        if (!speaker) {
-          timerMeta.textContent = 'No one is speaking right now.';
-          return;
-        }
+button:hover{opacity:.9}
 
-        timerMeta.textContent = `Current: ${speaker.text} • Spoke ${formatTime(
-          speaker.speakingSeconds
-        )}`;
-      }
+.primary{background:var(--primary);color:white}
+.present-btn{background:#dbeafe}
+.speak-btn{background:#c7d2fe}
+.absent-btn{background:#fecaca}
+.remove-btn{background:#f3f4f6}
+.control-btn{background:#e0e7ff}
+.download-btn{background:#16a34a;color:white}
 
-      function stopTimer() {
-        if (!timerInterval) return;
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
+.timer{text-align:center;padding:1rem;border-radius:12px;background:#f3f4ff}
+.timer-value{font-size:2.5rem;font-weight:700}
+#speakerTimerValue{font-size:3rem;font-weight:800;color:var(--primary)}
+.timer-meta{color:var(--gray-500);font-size:.9rem;margin-bottom:.5rem}
 
-      function startCountdown() {
-        if (timerInterval) return;
+ul{list-style:none;padding:0;margin:0}
+.scroll-box{overflow-y:auto;max-height:230px}
 
-        timerInterval = setInterval(() => {
-          secondsElapsed += 1;
-          const currentSpeaker = tasks.find((task) => task.id === currentSpeakerId);
-          if (currentSpeaker) {
-            currentSpeaker.speakingSeconds += 1;
-          }
-          updateTimerDisplay();
+li{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:.5rem;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  margin-bottom:.4rem;
+}
 
-          render();
-        }, 1000);
-      }
+li.present{background:var(--light-green)}
+li.absent{background:var(--light-red)}
+li.speaking{border:2px solid var(--primary)}
+</style>
+</head>
 
-      function resetCountdown() {
-        stopTimer();
-        secondsElapsed = 0;
-        tasks.forEach((task) => {
-          task.speakingSeconds = 0;
-        });
-        speakerOrder.length = 0;
-        currentSpeakerId = null;
-        updateTimerDisplay();
-        render();
-      }
+<body>
 
-      function escapeCsvField(value) {
-        const text = String(value ?? '');
-        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
-          return `"${text.replace(/"/g, '""')}"`;
-        }
-        return text;
-      }
+<main class="app">
 
-      function downloadAttendanceCsv() {
-        if (!tasks.length) return;
+<section class="panel">
+<h1>Session Timer</h1>
+<div class="timer">
+<div class="row">
+<input id="sessionMinutes" type="number" min="1" placeholder="Minutes..." />
+<button id="startSession" class="primary">Start</button>
+</div>
+<p id="sessionTimer" class="timer-value">00:00</p>
+</div>
+</section>
 
-        const csvRows = [
-          [
-            'Member Name',
-            'Attendance Status',
-            'Is Speaking Now',
-            'Speaking Duration (min)',
-            'Speaking Duration (sec)',
-          ].join(','),
-        ];
+<section class="panel">
+<h1>Speaking Summary</h1>
+<button id="downloadCSV" class="download-btn" style="margin-bottom:10px">
+Download CSV
+</button>
+<div class="scroll-box">
+<ul id="summaryList"></ul>
+</div>
+</section>
 
-        tasks.forEach((task) => {
-          const attendanceStatus = task.attendance[0].toUpperCase() + task.attendance.slice(1);
-          const durationSeconds = task.speakingSeconds;
-          csvRows.push(
-            [
-              escapeCsvField(task.text),
-              attendanceStatus,
-              task.id === currentSpeakerId ? 'Yes' : 'No',
-              (durationSeconds / 60).toFixed(2),
-              durationSeconds,
-            ].join(',')
-          );
-        });
+<section class="panel">
+<h1>Attendance</h1>
 
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
+<div class="row" style="justify-content:space-between;font-weight:600">
+  <span>Total: <span id="totalCount">0</span></span>
+  <span style="color:green">Present: <span id="presentCount">0</span></span>
+  <span style="color:red">Absent: <span id="absentCount">0</span></span>
+</div>
 
-        const link = document.createElement('a');
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        link.href = url;
-        link.download = `attendance-${timestamp}.csv`;
-        link.click();
+<div class="row">
+<input id="nameInput" placeholder="Add member name..." />
+<button id="addBtn" class="primary">Add</button>
+</div>
 
-        URL.revokeObjectURL(url);
-      }
+<div class="scroll-box">
+<ul id="attendanceList"></ul>
+</div>
+</section>
 
-      startTimer.addEventListener('click', startCountdown);
-      pauseTimer.addEventListener('click', stopTimer);
-      resetTimer.addEventListener('click', resetCountdown);
-      downloadCsv.addEventListener('click', downloadAttendanceCsv);
+<section class="panel">
+<h1>Speaker Timer</h1>
+<div class="timer">
+<p id="currentSpeaker" class="timer-meta">No one speaking</p>
+<p id="speakerTimerValue">02:00</p>
+<div class="row" style="justify-content:center;margin-top:.5rem">
+<button id="startSpeaker" class="control-btn">Start</button>
+<button id="pauseSpeaker" class="control-btn">Pause</button>
+<button id="resetSpeaker" class="control-btn">Reset</button>
+</div>
+</div>
+</section>
 
-      function render() {
-        taskList.innerHTML = '';
-        speakerList.innerHTML = '';
+</main>
 
-        tasks.forEach((task) => {
-          const li = document.createElement('li');
-          li.dataset.id = String(task.id);
-          li.classList.add(task.attendance);
-          if (task.id === currentSpeakerId) li.classList.add('speaking');
+<script>
+let members=[];
+let currentSpeakerId=null;
+let speakerInterval=null;
+let speakerTime=120;
+let sessionInterval=null;
+let sessionTime=0;
 
-          const text = document.createElement('span');
-          text.textContent = `${task.text} (${formatTime(task.speakingSeconds)})`;
+const attendanceList=document.getElementById("attendanceList");
+const summaryList=document.getElementById("summaryList");
+const speakerTimerDisplay=document.getElementById("speakerTimerValue");
+const currentSpeakerDisplay=document.getElementById("currentSpeaker");
 
-          const actions = document.createElement('div');
-          actions.className = 'actions';
+function format(sec){
+  return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
+}
 
-          const present = document.createElement('button');
-          present.className = 'toggle';
-          present.type = 'button';
-          present.dataset.action = 'present';
-          present.textContent = 'Present';
+/* SESSION TIMER */
+function startSessionTimer(){
+  const min=Number(document.getElementById("sessionMinutes").value);
+  if(!min)return;
+  clearInterval(sessionInterval);
+  sessionTime=min*60;
+  document.getElementById("sessionTimer").textContent=format(sessionTime);
+  sessionInterval=setInterval(()=>{
+    sessionTime--;
+    if(sessionTime<=0) clearInterval(sessionInterval);
+    document.getElementById("sessionTimer").textContent=format(sessionTime);
+  },1000);
+}
+document.getElementById("startSession").onclick=startSessionTimer;
+document.getElementById("sessionMinutes").addEventListener("keypress",e=>{
+  if(e.key==="Enter") startSessionTimer();
+});
 
-          const speak = document.createElement('button');
-          speak.className = 'speak';
-          speak.type = 'button';
-          speak.dataset.action = 'speak';
-          speak.textContent = task.id === currentSpeakerId ? 'Stop Speak' : 'Speak';
+/* ADD MEMBER */
+function addMember(){
+  const name=document.getElementById("nameInput").value.trim();
+  if(!name)return;
+  members.push({id:Date.now(),name,attendance:"",time:0});
+  document.getElementById("nameInput").value="";
+  render();
+}
+document.getElementById("addBtn").onclick=addMember;
+document.getElementById("nameInput").addEventListener("keypress",e=>{
+  if(e.key==="Enter") addMember();
+});
 
-          const absent = document.createElement('button');
-          absent.className = 'absent';
-          absent.type = 'button';
-          absent.dataset.action = 'absent';
-          absent.textContent = 'Absent';
+/* SPEAKER TIMER */
+function startSpeakerTimer(){
+  if(!currentSpeakerId)return;
+  clearInterval(speakerInterval);
+  speakerInterval=setInterval(()=>{
+    speakerTime--;
+    const speaker=members.find(m=>m.id===currentSpeakerId);
+    if(speaker) speaker.time++;
+    if(speakerTime<=0) clearInterval(speakerInterval);
+    speakerTimerDisplay.textContent=format(speakerTime);
+    render();
+  },1000);
+}
+document.getElementById("startSpeaker").onclick=startSpeakerTimer;
+document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
+document.getElementById("resetSpeaker").onclick=()=>{
+  clearInterval(speakerInterval);
+  speakerTime=120;
+  speakerTimerDisplay.textContent="02:00";
+};
 
-          const remove = document.createElement('button');
-          remove.className = 'remove';
-          remove.type = 'button';
-          remove.dataset.action = 'delete';
-          remove.textContent = 'Remove';
+/* CSV DOWNLOAD */
+document.getElementById("downloadCSV").onclick=function(){
+  let csv="Name,Attendance,Speaking Time (MM:SS),Speaking Time (Seconds)\n";
+  members.forEach(m=>{
+    csv+=`${m.name},${m.attendance||"Not Marked"},${format(m.time)},${m.time}\n`;
+  });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="tafsir_session_report.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
-          actions.appendChild(present);
-          actions.appendChild(speak);
-          actions.appendChild(absent);
-          actions.appendChild(remove);
-          li.appendChild(text);
-          li.appendChild(actions);
-          taskList.appendChild(li);
-        });
+/* RENDER */
+function render(){
+  attendanceList.innerHTML="";
+  summaryList.innerHTML="";
+  let present=0, absent=0;
 
-        speakerOrder.forEach((speakerId) => {
-          const speaker = tasks.find((task) => task.id === speakerId);
-          if (!speaker || speaker.speakingSeconds === 0) return;
+  members.forEach(m=>{
+    if(m.attendance==="present") present++;
+    if(m.attendance==="absent") absent++;
 
-          const li = document.createElement('li');
-          li.textContent = `${speaker.text}: ${formatTime(speaker.speakingSeconds)}`;
-          speakerList.appendChild(li);
-        });
+    const li=document.createElement("li");
+    if(m.attendance) li.classList.add(m.attendance);
+    if(m.id===currentSpeakerId) li.classList.add("speaking");
 
-        empty.style.display = tasks.length ? 'none' : 'block';
-        downloadCsv.disabled = tasks.length === 0;
-        updateTimerDisplay();
-      }
+    const nameSpan=document.createElement("span");
+    nameSpan.textContent=m.name+" ("+format(m.time)+")";
 
-      function addTask() {
-        const value = taskInput.value.trim();
-        if (!value) return;
+    const actions=document.createElement("div");
 
-        tasks.push({
-          id: nextId++,
-          text: value,
-          attendance: 'pending',
-          speakingSeconds: 0,
-        });
-        taskInput.value = '';
-        taskInput.focus();
-        render();
-      }
+    const presentBtn=document.createElement("button");
+    presentBtn.textContent="Present";
+    presentBtn.className="present-btn";
+    presentBtn.onclick=()=>{m.attendance="present";render();};
 
-      taskForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        addTask();
-      });
-
-      taskList.addEventListener('click', (event) => {
-        const button = event.target.closest('button[data-action]');
-        if (!button) return;
-
-        const li = button.closest('li[data-id]');
-        if (!li) return;
-
-        const taskId = Number(li.dataset.id);
-        const taskIndex = tasks.findIndex((task) => task.id === taskId);
-        if (taskIndex === -1) return;
-
-        if (button.dataset.action === 'present') {
-          tasks[taskIndex].attendance = 'present';
-        }
-
-        if (button.dataset.action === 'absent') {
-          tasks[taskIndex].attendance = 'absent';
-          if (currentSpeakerId === taskId) currentSpeakerId = null;
-        }
-
-        if (button.dataset.action === 'speak') {
-          if (currentSpeakerId === taskId) {
-            currentSpeakerId = null;
-          } else {
-            currentSpeakerId = taskId;
-            tasks[taskIndex].attendance = 'present';
-            if (!speakerOrder.includes(taskId)) {
-              speakerOrder.push(taskId);
-            }
-          }
-        }
-
-        if (button.dataset.action === 'delete') {
-          const speakerOrderIndex = speakerOrder.findIndex((id) => id === taskId);
-          if (speakerOrderIndex !== -1) speakerOrder.splice(speakerOrderIndex, 1);
-          if (currentSpeakerId === taskId) currentSpeakerId = null;
-          tasks.splice(taskIndex, 1);
-        }
-
-        render();
-      });
-
-      updateTimerDisplay();
+    const speak=document.createElement("button");
+    speak.textContent="Speak";
+    speak.className="speak-btn";
+    if(m.attendance==="absent"){
+      speak.disabled=true;
+      speak.style.opacity="0.4";
+    }
+    speak.onclick=()=>{
+      if(m.attendance==="absent") return;
+      currentSpeakerId=m.id;
+      speakerTime=120;
+      speakerTimerDisplay.textContent="02:00";
+      currentSpeakerDisplay.textContent="Current: "+m.name;
+      startSpeakerTimer();
       render();
-    </script>
-  </body>
+    };
+
+    const absentBtn=document.createElement("button");
+    absentBtn.textContent="Absent";
+    absentBtn.className="absent-btn";
+    absentBtn.onclick=()=>{m.attendance="absent";render();};
+
+    const remove=document.createElement("button");
+    remove.textContent="Remove";
+    remove.className="remove-btn";
+    remove.onclick=()=>{
+      members=members.filter(x=>x.id!==m.id);
+      render();
+    };
+
+    actions.append(presentBtn,speak,absentBtn,remove);
+    li.append(nameSpan,actions);
+    attendanceList.appendChild(li);
+
+    if(m.time>0){
+      const sum=document.createElement("li");
+      sum.textContent=m.name+": "+format(m.time);
+      summaryList.appendChild(sum);
+    }
+  });
+
+  document.getElementById("totalCount").textContent=members.length;
+  document.getElementById("presentCount").textContent=present;
+  document.getElementById("absentCount").textContent=absent;
+}
+
+render();
+</script>
+
+</body>
 </html>
