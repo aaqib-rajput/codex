@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simple To-Do App</title>
+    <title>Attendance of tafsir session</title>
     <style>
       :root {
         font-family: Arial, sans-serif;
@@ -25,6 +25,31 @@
       h1 {
         margin-top: 0;
         margin-bottom: 0.75rem;
+      }
+      .timer {
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
+        padding: 0.85rem;
+        margin-bottom: 1rem;
+      }
+      .timer-label {
+        margin: 0;
+        color: #4338ca;
+        font-size: 0.9rem;
+      }
+      .timer-value {
+        margin: 0.35rem 0 0.7rem;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #312e81;
+      }
+      .timer-controls {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .timer-controls button {
+        background: #e0e7ff;
       }
       .row {
         display: flex;
@@ -82,12 +107,23 @@
   </head>
   <body>
     <main class="app">
-      <h1>Simple To-Do</h1>
+      <h1>Attendance of tafsir session</h1>
+
+      <section class="timer" aria-label="2 minute speaker timer">
+        <p class="timer-label">Speaker time (2 minutes)</p>
+        <p id="timerValue" class="timer-value">02:00</p>
+        <div class="timer-controls">
+          <button id="startTimer" type="button">Start</button>
+          <button id="pauseTimer" type="button">Pause</button>
+          <button id="resetTimer" type="button">Reset</button>
+        </div>
+      </section>
+
       <form id="taskForm" class="row">
-        <input id="taskInput" placeholder="Add a task..." />
+        <input id="taskInput" placeholder="Add member name..." />
         <button id="add" type="submit">Add</button>
       </form>
-      <p id="empty" class="empty">No tasks yet.</p>
+      <p id="empty" class="empty">No members yet.</p>
       <ul id="taskList"></ul>
     </main>
 
@@ -96,9 +132,58 @@
       const taskInput = document.getElementById('taskInput');
       const taskList = document.getElementById('taskList');
       const empty = document.getElementById('empty');
+      const timerValue = document.getElementById('timerValue');
+      const startTimer = document.getElementById('startTimer');
+      const pauseTimer = document.getElementById('pauseTimer');
+      const resetTimer = document.getElementById('resetTimer');
 
       let nextId = 1;
       const tasks = [];
+
+      const TIMER_DURATION = 120;
+      let secondsRemaining = TIMER_DURATION;
+      let timerInterval = null;
+
+      function formatTime(totalSeconds) {
+        const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        return `${minutes}:${seconds}`;
+      }
+
+      function updateTimerDisplay() {
+        timerValue.textContent = formatTime(secondsRemaining);
+      }
+
+      function stopTimer() {
+        if (!timerInterval) return;
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+
+      function startCountdown() {
+        if (timerInterval || secondsRemaining === 0) return;
+
+        timerInterval = setInterval(() => {
+          secondsRemaining -= 1;
+          updateTimerDisplay();
+
+          if (secondsRemaining <= 0) {
+            secondsRemaining = 0;
+            updateTimerDisplay();
+            stopTimer();
+          }
+        }, 1000);
+      }
+
+      function resetCountdown() {
+        stopTimer();
+        secondsRemaining = TIMER_DURATION;
+        updateTimerDisplay();
+      }
+
+      startTimer.addEventListener('click', startCountdown);
+      pauseTimer.addEventListener('click', stopTimer);
+      resetTimer.addEventListener('click', resetCountdown);
 
       function render() {
         taskList.innerHTML = '';
@@ -118,13 +203,13 @@
           toggle.className = 'toggle';
           toggle.type = 'button';
           toggle.dataset.action = 'toggle';
-          toggle.textContent = task.done ? 'Undo' : 'Done';
+          toggle.textContent = task.done ? 'Undo' : 'Present';
 
           const remove = document.createElement('button');
           remove.className = 'remove';
           remove.type = 'button';
           remove.dataset.action = 'delete';
-          remove.textContent = 'Delete';
+          remove.textContent = 'Remove';
 
           actions.appendChild(toggle);
           actions.appendChild(remove);
@@ -173,6 +258,7 @@
         render();
       });
 
+      updateTimerDisplay();
       render();
     </script>
   </body>
