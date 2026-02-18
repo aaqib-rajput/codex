@@ -1,27 +1,48 @@
 # codex
 
-A simple to-do web app built with plain HTML, CSS, and JavaScript.
+This project is now a **Next.js** app wrapping the existing Tafsir Session Manager UI, ready to deploy on **Vercel**.
 
-## Run locally
+## Local development
 
-Use any static server. For example:
+1. Install dependencies:
 
 ```bash
-python3 -m http.server 8000
+npm install
 ```
 
-Then open <http://localhost:8000>.
+2. Run the Next.js dev server:
 
-## Deploy to GitHub Pages
+```bash
+npm run dev
+```
 
-This repository includes `.github/workflows/static.yml` to deploy the site from the `main` branch.
+3. Open <http://localhost:3000>.
 
-If the workflow fails with `Get Pages site failed` or `HttpError: Not Found`, enable Pages once in repository settings:
+## Production build
 
-1. Go to **Settings → Pages**.
-2. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-3. Re-run the workflow (or push a new commit to `main`).
+```bash
+npm run build
+npm run start
+```
 
-After that, the app will be published at:
+## Deploy to Vercel
 
-`https://<your-username>.github.io/<your-repo>/`
+### Option 1: Vercel dashboard
+
+1. Push this repository to GitHub.
+2. Import the repo in Vercel.
+3. Keep the default framework preset (**Next.js**).
+4. Click **Deploy**.
+
+### Option 2: Vercel CLI
+
+```bash
+npm i -g vercel
+vercel
+```
+
+For production deployment:
+
+```bash
+vercel --prod
+```
